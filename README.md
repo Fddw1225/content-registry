@@ -10,3 +10,6 @@ This registry currently supports:
 ## Status
 
 Protocol v0.1
+=======
+# content-registry
+A public registry for permanent content identity.
