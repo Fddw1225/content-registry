@@ -4,11 +4,14 @@ from sqlalchemy.orm import Session
 import hashlib
 import unicodedata
 
+from models import Content
 from database import engine, SessionLocal, Base
 from models import Content
 
 # 创建数据库表
 Base.metadata.create_all(bind=engine)
+
+app = FastAPI(debug=True)
 
 # 输入模型
 class ContentInput(BaseModel):
@@ -16,8 +19,6 @@ class ContentInput(BaseModel):
     text: str
     author: str | None = None
     parent_id: str | None = None
-
-app = FastAPI()
 
 # Dependency
 def get_db():
@@ -39,7 +40,8 @@ def generate_content_id(text: str) -> str:
     if text is None:
         raise ValueError("Text cannot be None")
     normalized = canonicalize(text)
-    return "cx-" + hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:12]
+    digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+    return f"cx-{digest[:12]}"
 
 # 根接口
 @app.get("/")
@@ -75,9 +77,8 @@ def register(content: ContentInput, db: Session = Depends(get_db)):
 @app.get("/content/{cid}")
 def get_content(cid: str, db: Session = Depends(get_db)):
     result = db.query(Content).filter(Content.content_id == cid).first()
-
     if not result:
-        raise HTTPException(status_code=404)
+        raise HTTPException(status_code=404, detail="Content not found")
 
     return {
         "content_id": result.content_id,
